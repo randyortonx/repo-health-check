@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -24,7 +25,11 @@ class RepositorySnapshot:
         return sorted(path for path in self.files if path.startswith(f"{normalized}/"))
 
     def read_text(self, relative_path: str) -> str:
-        return (self.root / relative_path).read_text(encoding="utf-8")
+        root = self.root.expanduser().resolve()
+        target = (root / relative_path).resolve()
+        if not _is_relative_to(target, root):
+            raise ValueError(f"Cannot read path outside repository: {relative_path}")
+        return target.read_text(encoding="utf-8")
 
 
 def scan_repository(path: str | Path) -> RepositorySnapshot:
@@ -35,9 +40,23 @@ def scan_repository(path: str | Path) -> RepositorySnapshot:
         raise NotADirectoryError(f"Repository path is not a directory: {root}")
 
     files: set[str] = set()
-    for item in root.rglob("*"):
-        if any(part in IGNORED_DIRS for part in item.relative_to(root).parts):
-            continue
-        if item.is_file():
-            files.add(item.relative_to(root).as_posix())
+    for dirpath, dirnames, filenames in os.walk(root):
+        current = Path(dirpath)
+        dirnames[:] = [
+            dirname
+            for dirname in dirnames
+            if dirname not in IGNORED_DIRS and _is_relative_to((current / dirname).resolve(), root)
+        ]
+        for filename in filenames:
+            item = current / filename
+            if item.is_file() and _is_relative_to(item.resolve(), root):
+                files.add(item.relative_to(root).as_posix())
     return RepositorySnapshot(root=root, files=frozenset(files))
+
+
+def _is_relative_to(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
