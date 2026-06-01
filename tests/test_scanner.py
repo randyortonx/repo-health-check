@@ -20,6 +20,18 @@ def test_scan_repository_records_relative_file_paths(repo_factory):
     assert snapshot.read_text("README.md") == "# Example\n"
 
 
+def test_scan_repository_records_files_as_sorted_sequence(repo_factory):
+    repo = repo_factory({
+        "b.txt": "B\n",
+        "a.txt": "A\n",
+        "nested/c.txt": "C\n",
+    })
+
+    snapshot = scan_repository(repo)
+
+    assert snapshot.files == ("a.txt", "b.txt", "nested/c.txt")
+
+
 def test_snapshot_read_text_rejects_paths_outside_repository(tmp_path: Path):
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -30,6 +42,18 @@ def test_snapshot_read_text_rejects_paths_outside_repository(tmp_path: Path):
 
     with pytest.raises(ValueError, match="outside repository"):
         snapshot.read_text("../outside.txt")
+
+
+def test_snapshot_read_text_rejects_ignored_files(repo_factory):
+    repo = repo_factory({
+        "README.md": "# Example\n",
+        ".git/config": "[core]\n",
+    })
+
+    snapshot = scan_repository(repo)
+
+    with pytest.raises(ValueError, match="not part of repository snapshot"):
+        snapshot.read_text(".git/config")
 
 
 def test_scan_repository_excludes_symlinked_files_outside_repository(tmp_path: Path):

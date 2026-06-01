@@ -11,7 +11,7 @@ IGNORED_DIRS = {".git", ".hg", ".svn", "__pycache__", ".mypy_cache", ".pytest_ca
 @dataclass(frozen=True)
 class RepositorySnapshot:
     root: Path
-    files: frozenset[str]
+    files: tuple[str, ...]
 
     def has_file(self, relative_path: str) -> bool:
         return relative_path.replace("\\", "/") in self.files
@@ -29,6 +29,9 @@ class RepositorySnapshot:
         target = (root / relative_path).resolve()
         if not _is_relative_to(target, root):
             raise ValueError(f"Cannot read path outside repository: {relative_path}")
+        normalized = target.relative_to(root).as_posix()
+        if normalized not in self.files:
+            raise ValueError(f"Cannot read path not part of repository snapshot: {relative_path}")
         return target.read_text(encoding="utf-8")
 
 
@@ -51,7 +54,7 @@ def scan_repository(path: str | Path) -> RepositorySnapshot:
             item = current / filename
             if item.is_file() and _is_relative_to(item.resolve(), root):
                 files.add(item.relative_to(root).as_posix())
-    return RepositorySnapshot(root=root, files=frozenset(files))
+    return RepositorySnapshot(root=root, files=tuple(sorted(files)))
 
 
 def _is_relative_to(path: Path, root: Path) -> bool:
