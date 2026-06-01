@@ -7,7 +7,12 @@ METADATA_NAMES = ("pyproject.toml", "package.json", "Cargo.toml", "go.mod", "pom
 
 
 def check_metadata(snapshot: RepositorySnapshot) -> CheckResult:
-    matches = snapshot.matching_files(*METADATA_NAMES)
+    matches = _root_matching_files(snapshot, *METADATA_NAMES)
     if matches:
         return CheckResult("metadata", "Package metadata", Status.PASS, f"Found {matches[0]}.", "No action needed.")
     return CheckResult("metadata", "Package metadata", Status.WARN, "No common package metadata file was found.", "Add ecosystem metadata such as pyproject.toml, package.json, Cargo.toml, or go.mod when applicable.")
+
+
+def _root_matching_files(snapshot: RepositorySnapshot, *names: str) -> list[str]:
+    wanted = {name.lower() for name in names}
+    return sorted(path for path in snapshot.files if "/" not in path and path.lower() in wanted)

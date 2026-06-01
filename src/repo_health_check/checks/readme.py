@@ -8,10 +8,18 @@ HELPFUL_TERMS = ("install", "installation", "usage", "quickstart", "contributing
 
 
 def check_readme(snapshot: RepositorySnapshot) -> CheckResult:
-    matches = snapshot.matching_files(*README_NAMES)
+    matches = _root_matching_files(snapshot, *README_NAMES)
     if not matches:
         return CheckResult("readme", "README", Status.FAIL, "No README file was found.", "Add a README with installation, usage, and contribution guidance.")
-    content = snapshot.read_text(matches[0]).lower()
+    try:
+        content = snapshot.read_text(matches[0]).lower()
+    except UnicodeDecodeError:
+        return CheckResult("readme", "README", Status.WARN, f"Found {matches[0]}, but it could not be decoded as UTF-8 text.", "Replace or re-encode README as UTF-8 text.")
     if any(term in content for term in HELPFUL_TERMS):
         return CheckResult("readme", "README", Status.PASS, f"Found {matches[0]} with usage-oriented content.", "No action needed.")
     return CheckResult("readme", "README", Status.WARN, f"Found {matches[0]}, but it has limited usage guidance.", "Add installation, usage, or contribution sections.")
+
+
+def _root_matching_files(snapshot: RepositorySnapshot, *names: str) -> list[str]:
+    wanted = {name.lower() for name in names}
+    return sorted(path for path in snapshot.files if "/" not in path and path.lower() in wanted)

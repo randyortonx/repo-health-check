@@ -8,6 +8,11 @@ def status_by_id(repo):
     return {result.check_id: result.status for result in results}
 
 
+def result_by_id(repo):
+    results = run_checks(scan_repository(repo))
+    return {result.check_id: result for result in results}
+
+
 def test_healthy_repository_passes_core_checks(repo_factory):
     repo = repo_factory({
         "README.md": "# Example\n\n## Installation\n\n## Usage\n\n## Contributing\n",
@@ -56,3 +61,33 @@ def test_missing_readme_fails_readme_check(repo_factory):
     statuses = status_by_id(repo)
 
     assert statuses["readme"] == Status.FAIL
+
+
+def test_invalid_utf8_readme_returns_warning(repo_factory):
+    repo = repo_factory({"LICENSE": "MIT License\n"})
+    (repo / "README.md").write_bytes(b"\xff\xfe\x00")
+
+    results = result_by_id(repo)
+
+    assert results["readme"].status == Status.WARN
+    assert "decode" in results["readme"].summary.lower() or "unreadable" in results["readme"].summary.lower()
+
+
+def test_nested_files_do_not_satisfy_root_level_checks(repo_factory):
+    repo = repo_factory({
+        "docs/LICENSE": "MIT License\n",
+        "examples/README.md": "# Example\n\n## Usage\n",
+        "docs/CONTRIBUTING.md": "# Contributing\n",
+        "docs/SECURITY.md": "# Security\n",
+        "docs/CHANGELOG.md": "# Changelog\n",
+        "packages/pkg/pyproject.toml": "[project]\nname = 'example'\n",
+    })
+
+    statuses = status_by_id(repo)
+
+    assert statuses["readme"] == Status.FAIL
+    assert statuses["license"] == Status.FAIL
+    assert statuses["contributing"] == Status.WARN
+    assert statuses["security"] == Status.WARN
+    assert statuses["changelog"] == Status.WARN
+    assert statuses["metadata"] == Status.WARN
