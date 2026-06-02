@@ -15,7 +15,7 @@ def check_readme(snapshot: RepositorySnapshot) -> CheckResult:
         content = snapshot.read_text(matches[0]).lower()
     except UnicodeDecodeError:
         return CheckResult("readme", "README", Status.WARN, f"Found {matches[0]}, but it could not be decoded as UTF-8 text.", "Replace or re-encode README as UTF-8 text.")
-    except (ValueError, PermissionError):
+    except (ValueError, OSError):
         return CheckResult("readme", "README", Status.WARN, f"Found {matches[0]}, but it could not be read safely.", "Replace the README with a regular readable text file inside the repository.")
     if any(term in content for term in HELPFUL_TERMS):
         return CheckResult("readme", "README", Status.PASS, f"Found {matches[0]} with usage-oriented content.", "No action needed.")

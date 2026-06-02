@@ -24,7 +24,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         snapshot = scan_repository(args.path)
         results = run_checks(snapshot)
-    except (FileNotFoundError, NotADirectoryError, PermissionError) as exc:
+    except OSError as exc:
         print(str(exc), file=sys.stderr)
         return 2
 

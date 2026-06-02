@@ -52,3 +52,19 @@ def test_cli_returns_two_when_check_execution_hits_permission_error(repo_factory
     assert exit_code == 2
     assert "cannot read README.md" in captured.err
     assert "# Repository Health Report" not in captured.out
+
+
+def test_cli_returns_two_when_scanning_hits_os_error(repo_factory, monkeypatch, capsys):
+    repo = repo_factory({"README.md": "# Example\n"})
+
+    def raise_os_error(_path):
+        raise OSError("walk failed")
+
+    monkeypatch.setattr("repo_health_check.cli.scan_repository", raise_os_error)
+
+    exit_code = main([str(repo)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 2
+    assert "walk failed" in captured.err
+    assert "# Repository Health Report" not in captured.out

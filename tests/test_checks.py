@@ -1,6 +1,7 @@
 from repo_health_check.checks import run_checks
+from repo_health_check.checks.readme import check_readme
 from repo_health_check.models import Status
-from repo_health_check.scanner import scan_repository
+from repo_health_check.scanner import RepositorySnapshot, scan_repository
 
 
 def status_by_id(repo):
@@ -71,6 +72,22 @@ def test_invalid_utf8_readme_returns_warning(repo_factory):
 
     assert results["readme"].status == Status.WARN
     assert "decode" in results["readme"].summary.lower() or "unreadable" in results["readme"].summary.lower()
+
+
+def test_readme_read_os_error_returns_warning(repo_factory, monkeypatch):
+    repo = repo_factory({"README.md": "# Example\n"})
+    snapshot = scan_repository(repo)
+
+    def raise_os_error(self, relative_path):
+        raise OSError("read failed")
+
+    monkeypatch.setattr(RepositorySnapshot, "read_text", raise_os_error)
+
+    result = check_readme(snapshot)
+
+    assert result.status == Status.WARN
+    assert "read" in result.summary.lower()
+    assert "safely" in result.summary.lower()
 
 
 def test_readme_symlink_to_ignored_internal_file_does_not_raise(repo_factory):
