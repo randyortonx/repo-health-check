@@ -6,7 +6,7 @@ repo-health-check
 
 ## Repository
 
-Public GitHub repository URL: Not yet available while the repository is local. Replace this line with the public GitHub URL after publishing.
+Public GitHub repository URL: https://github.com/randyortonx/repo-health-check
 
 ## Short Description
 
