@@ -82,6 +82,31 @@ def test_scan_repository_excludes_files_under_ignored_dirs(repo_factory):
     assert not snapshot.has_file(".git/config")
 
 
+def test_scan_repository_raises_os_walk_errors(repo_factory, monkeypatch):
+    repo = repo_factory({"README.md": "# Example\n"})
+
+    def walk_with_error(_root, *, onerror=None):
+        if onerror is not None:
+            onerror(PermissionError("cannot read nested"))
+        return iter(())
+
+    monkeypatch.setattr("repo_health_check.scanner.os.walk", walk_with_error)
+
+    with pytest.raises(PermissionError, match="cannot read nested"):
+        scan_repository(repo)
+
+
+def test_scan_repository_excludes_symlinked_files_into_ignored_dirs(repo_factory):
+    repo = repo_factory({
+        ".git/config": "[core]\n",
+    })
+    (repo / "README.md").symlink_to(".git/config")
+
+    snapshot = scan_repository(repo)
+
+    assert not snapshot.has_file("README.md")
+
+
 def test_scan_repository_rejects_missing_path(tmp_path: Path):
     with pytest.raises(FileNotFoundError, match="Repository path does not exist"):
         scan_repository(tmp_path / "missing")

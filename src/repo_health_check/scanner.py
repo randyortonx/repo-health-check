@@ -42,19 +42,29 @@ def scan_repository(path: str | Path) -> RepositorySnapshot:
     if not root.is_dir():
         raise NotADirectoryError(f"Repository path is not a directory: {root}")
 
+    def raise_walk_error(error: OSError) -> None:
+        raise error
+
     files: set[str] = set()
-    for dirpath, dirnames, filenames in os.walk(root):
+    for dirpath, dirnames, filenames in os.walk(root, onerror=raise_walk_error):
         current = Path(dirpath)
         dirnames[:] = [
             dirname
             for dirname in dirnames
-            if dirname not in IGNORED_DIRS and _is_relative_to((current / dirname).resolve(), root)
+            if _is_included_path(current / dirname, root)
         ]
         for filename in filenames:
             item = current / filename
-            if item.is_file() and _is_relative_to(item.resolve(), root):
+            if item.is_file() and _is_included_path(item, root):
                 files.add(item.relative_to(root).as_posix())
     return RepositorySnapshot(root=root, files=tuple(sorted(files)))
+
+
+def _is_included_path(path: Path, root: Path) -> bool:
+    resolved = path.resolve()
+    if not _is_relative_to(resolved, root):
+        return False
+    return not any(part in IGNORED_DIRS for part in resolved.relative_to(root).parts)
 
 
 def _is_relative_to(path: Path, root: Path) -> bool:

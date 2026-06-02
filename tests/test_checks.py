@@ -73,6 +73,17 @@ def test_invalid_utf8_readme_returns_warning(repo_factory):
     assert "decode" in results["readme"].summary.lower() or "unreadable" in results["readme"].summary.lower()
 
 
+def test_readme_symlink_to_ignored_internal_file_does_not_raise(repo_factory):
+    repo = repo_factory({
+        ".git/config": "[core]\n",
+    })
+    (repo / "README.md").symlink_to(".git/config")
+
+    results = result_by_id(repo)
+
+    assert results["readme"].status in {Status.FAIL, Status.WARN}
+
+
 def test_nested_files_do_not_satisfy_root_level_checks(repo_factory):
     repo = repo_factory({
         "docs/LICENSE": "MIT License\n",
