@@ -36,3 +36,19 @@ def test_cli_returns_two_for_missing_path(tmp_path, capsys):
 
     assert exit_code == 2
     assert "Repository path does not exist" in captured.err
+
+
+def test_cli_returns_two_when_check_execution_hits_permission_error(repo_factory, monkeypatch, capsys):
+    repo = repo_factory({"README.md": "# Example\n"})
+
+    def raise_permission_error(_snapshot):
+        raise PermissionError("cannot read README.md")
+
+    monkeypatch.setattr("repo_health_check.cli.run_checks", raise_permission_error)
+
+    exit_code = main([str(repo)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 2
+    assert "cannot read README.md" in captured.err
+    assert "# Repository Health Report" not in captured.out

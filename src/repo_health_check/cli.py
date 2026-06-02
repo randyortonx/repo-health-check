@@ -23,11 +23,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     try:
         snapshot = scan_repository(args.path)
+        results = run_checks(snapshot)
     except (FileNotFoundError, NotADirectoryError, PermissionError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
 
-    report = Report(repo_path=str(snapshot.root), results=run_checks(snapshot))
+    report = Report(repo_path=str(snapshot.root), results=results)
     if args.format == "json":
         print(render_json(report), end="")
     else:
