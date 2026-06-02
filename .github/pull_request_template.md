@@ -2,7 +2,7 @@
 
 ## Testing
 
-- [ ] `python -m pytest -v`
+- [ ] `python3 -m pytest -v` with Python 3.11+
 
 ## Checklist
 

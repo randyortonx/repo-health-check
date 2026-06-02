@@ -6,8 +6,10 @@ The first release runs entirely on local files. It does not call external APIs, 
 
 ## Install
 
+Requires Python 3.11+.
+
 ```bash
-python -m pip install -e ".[dev]"
+python3 -m pip install -e ".[dev]"
 ```
 
 ## Usage

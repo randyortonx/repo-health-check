@@ -4,9 +4,11 @@ Thanks for helping improve `repo-health-check`.
 
 ## Development Setup
 
+Use Python 3.11+ for local development.
+
 ```bash
-python -m pip install -e ".[dev]"
-python -m pytest -v
+python3 -m pip install -e ".[dev]"
+python3 -m pytest -v
 ```
 
 ## Pull Requests
